@@ -34,6 +34,17 @@ const TABS = [
     ),
   },
   {
+    path: '/service',
+    label: '服务',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-[22px] h-[22px]">
+        <path d="M20 7h-9M14 17H5" />
+        <circle cx="17" cy="17" r="3" />
+        <circle cx="7" cy="7" r="3" />
+      </svg>
+    ),
+  },
+  {
     path: '/me',
     label: '我的',
     icon: (

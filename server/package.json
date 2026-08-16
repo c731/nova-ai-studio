@@ -1,0 +1,14 @@
+{
+  "name": "nova-ai-gateway",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Nova AI Studio 后端代理网关（零依赖，Node 18+）",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

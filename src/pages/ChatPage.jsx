@@ -1,5 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/Toast.jsx';
+import { useUser } from '../context/UserContext.jsx';
+import { DB, estimateTokens, tokensToCredits } from '../services/db.js';
+import { chat } from '../services/gateway.js';
 
 const SUGGESTIONS = [
   '帮我写一段小红书种草文案',
@@ -10,6 +14,8 @@ const SUGGESTIONS = [
 
 export default function ChatPage() {
   const toast = useToast();
+  const navigate = useNavigate();
+  const { user, refresh } = useUser();
   const [messages, setMessages] = useState([
     { role: 'ai', content: '你好！我是 Nova，你问我答。无论是写东西、查知识还是出点子，都可以直接告诉我～' },
   ]);
@@ -24,30 +30,45 @@ export default function ChatPage() {
   const send = async (text) => {
     const q = (text ?? input).trim();
     if (!q || loading) return;
+
+    // 登录与积分校验（真实扣费）
+    if (!user) {
+      toast('请先登录后使用 AI 对话', 'warning');
+      navigate('/login');
+      return;
+    }
+    const cost = 2; // AI 对话基础消耗
+    if (user.credits < cost) {
+      toast('积分不足，请前往钱包充值', 'error');
+      navigate('/wallet');
+      return;
+    }
+
     setInput('');
     setMessages((m) => [...m, { role: 'user', content: q }]);
     setLoading(true);
     try {
-      const res = await fetch('https://text.pollinations.ai/openai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'openai',
-          messages: [
-            { role: 'system', content: '你是 Nova，一个友好、简洁的中文 AI 助手。回答清晰、自然、有帮助。' },
-            ...[...messages.slice(-8), { role: 'user', content: q }].map((m) => ({
-              role: m.role === 'ai' ? 'assistant' : m.role,
-              content: m.content,
-            })),
-          ],
-        }),
-      });
-      const data = await res.json();
-      const answer = data?.choices?.[0]?.message?.content || '抱歉，这次没有生成回答，请再试一次。';
-      setMessages((m) => [...m, { role: 'ai', content: answer }]);
+      // 走聚合网关：自动故障转移，返回真实文本与命中的 provider
+      const history = [...messages.slice(-8), { role: 'user', content: q }].map((m) => ({
+        role: m.role === 'ai' ? 'assistant' : m.role,
+        content: m.content,
+      }));
+      const result = await chat(
+        [{ role: 'system', content: '你是 Nova，一个友好、简洁的中文 AI 助手。回答清晰、自然、有帮助。' }, ...history],
+        { temperature: 0.7 }
+      );
+
+      // 按真实 Token 消耗扣积分
+      const tokens = estimateTokens(q + result.text);
+      const credits = Math.max(cost, tokensToCredits(tokens));
+      DB.addCredits(user.id, -credits, `AI 对话消耗（${tokens} Token）`);
+      DB.logCall({ userId: user.id, service: 'AI 对话', provider: result.provider, tokens, credits, ok: true });
+      refresh();
+
+      setMessages((m) => [...m, { role: 'ai', content: result.text, provider: result.provider }]);
     } catch (e) {
-      setMessages((m) => [...m, { role: 'ai', content: '网络开小差了，请稍后再试。' }]);
-      toast('网络异常，请重试', 'error');
+      setMessages((m) => [...m, { role: 'ai', content: '所有 AI 节点暂时不可用：' + e.message }]);
+      toast('调用失败，请稍后重试', 'error');
     } finally {
       setLoading(false);
     }
