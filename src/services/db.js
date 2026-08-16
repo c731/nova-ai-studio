@@ -31,6 +31,7 @@ function initDB() {
     // 旧数据兼容：补齐邀请与收款配置字段
     if (!existing.invites) existing.invites = [];
     if (!existing.payConfig) existing.payConfig = { alipayImage: '', payee: '白鸟(**林)' };
+    if (!existing.gatewayUrl) existing.gatewayUrl = 'https://server-one-silk-35.vercel.app';
     save(existing);
     return existing;
   }
@@ -51,7 +52,7 @@ function initDB() {
       { id: 'translate', name: '智能翻译', cost: 2, builtin: true },
       { id: 'writing', name: 'AI 写作', cost: 3, builtin: true },
     ],
-    gatewayUrl: '', // 管理员配置的自建网关地址
+    gatewayUrl: 'https://server-one-silk-35.vercel.app', // 默认指向已部署的 Vercel 云网关
     settings: { adminKey: 'admin888' },
   };
   save(db);

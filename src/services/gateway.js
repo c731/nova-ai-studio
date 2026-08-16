@@ -25,10 +25,10 @@ function withTimeout(promise, ms) {
   ]);
 }
 
-async function postJSON(url, body, headers = {}) {
+async function postJSON(url, body, headers = {}, ms = TIMEOUT) {
   const res = await withTimeout(
     fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) }),
-    TIMEOUT
+    ms
   );
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
@@ -40,7 +40,7 @@ async function postJSON(url, body, headers = {}) {
 async function callCustomGateway(messages, opts) {
   const base = DB.getGatewayUrl().replace(/\/$/, '');
   if (!base) throw new Error('未配置自建网关');
-  const data = await postJSON(`${base}/api/chat`, { messages, ...opts });
+  const data = await postJSON(`${base}/api/chat`, { messages, ...opts }, {}, 10000);
   const text = data?.content || data?.choices?.[0]?.message?.content;
   if (!text) throw new Error('网关返回为空');
   return { text, provider: data?.provider || '自建网关' };
