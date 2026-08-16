@@ -42,7 +42,8 @@ export async function POST(req: Request) {
       await prisma.user.update({ where: { id: userId }, data: { stripeCustomerId: customerId } });
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL
+      || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
     const checkout = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,

@@ -4,10 +4,16 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
+const VERCEL_URL = process.env.VERCEL_PROJECT_NAME
+  ? `https://${process.env.VERCEL_URL || "nova-ai-studio-qik7-nine.vercel.app"}`
+  : (process.env.NEXTAUTH_URL || "http://localhost:3000");
+
+process.env.NEXTAUTH_URL = VERCEL_URL;
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET || "nova-fallback-secret-2024",
   pages: {
     signIn: "/login",
   },
