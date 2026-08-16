@@ -1,0 +1,20 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/admin/orders/route": "app/api/admin/orders/route.js",
+  "/api/admin/settings/route": "app/api/admin/settings/route.js",
+  "/api/admin/stats/route": "app/api/admin/stats/route.js",
+  "/api/admin/users/route": "app/api/admin/users/route.js",
+  "/api/generate/route": "app/api/generate/route.js",
+  "/api/auth/register/route": "app/api/auth/register/route.js",
+  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
+  "/billing/page": "app/billing/page.js",
+  "/api/stripe/checkout/route": "app/api/stripe/checkout/route.js",
+  "/admin/page": "app/admin/page.js",
+  "/api/stripe/webhook/route": "app/api/stripe/webhook/route.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/page": "app/page.js",
+  "/login/page": "app/login/page.js",
+  "/pricing/page": "app/pricing/page.js",
+  "/register/page": "app/register/page.js",
+  "/studio/page": "app/studio/page.js"
+}
