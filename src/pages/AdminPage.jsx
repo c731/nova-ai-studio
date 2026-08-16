@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { useToast } from '../components/Toast.jsx';
 
-// 内置免费 API 目录（兜底数据源，保证离线也能展示）
+// 内置免费 API 目录（兜底数据源）
 const SEED_APIS = [
   { name: 'Open-Meteo', desc: '免费天气预报，无需密钥', url: 'https://open-meteo.com', category: '天气', auth: '无需密钥' },
   { name: 'Frankfurter', desc: '实时汇率转换 API', url: 'https://frankfurter.dev', category: '金融', auth: '无需密钥' },
@@ -16,16 +17,17 @@ const SEED_APIS = [
 
 const PRIVILEGES = [
   { icon: '🔍', name: 'API 自动搜集', desc: 'AI 全网爬取免费接口' },
-  { icon: '⚡', name: '极速引擎', desc: '10 秒轮询，收益最大化' },
+  { icon: '⚡', name: '极速引擎', desc: '优先调度，响应更快' },
   { icon: '🧩', name: 'API 智能组合', desc: '多接口协同提升能力' },
   { icon: '🛡️', name: '安全总控', desc: 'WAF / DDoS / 备份' },
-  { icon: '💸', name: '提现免审', desc: '收益直达支付宝' },
+  { icon: '📊', name: '数据看板', desc: '全站运行状态监控' },
   { icon: '🤖', name: 'AI 自我进化', desc: '自动接入新能力' },
 ];
 
 export default function AdminPage() {
   const { state, update } = useApp();
   const toast = useToast();
+  const navigate = useNavigate();
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [collecting, setCollecting] = useState(false);
@@ -42,7 +44,6 @@ export default function AdminPage() {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
   }, [log]);
 
-  // 管理员认证
   const login = () => {
     if (!code.trim()) {
       toast('请输入管理员密钥', 'warning');
@@ -51,8 +52,8 @@ export default function AdminPage() {
     setBusy(true);
     setTimeout(() => {
       if (code.trim() === 'admin888' || code.trim() === 'nova2026') {
-        update({ isAdmin: true, adminName: '超级管理员' });
-        toast('管理员认证成功，欢迎回来', 'success');
+        update({ isAdmin: true });
+        toast('管理员认证成功', 'success');
         pushLog('管理员身份验证通过，已解锁全部特权');
       } else {
         toast('密钥错误，认证失败', 'error');
@@ -65,6 +66,7 @@ export default function AdminPage() {
   const logout = () => {
     update({ isAdmin: false });
     toast('已退出管理员模式', 'info');
+    navigate('/');
   };
 
   // AI 自动搜集免费 API
@@ -75,8 +77,6 @@ export default function AdminPage() {
     toast('AI 正在全网搜集免费 API…', 'info');
 
     let results = [];
-
-    // 数据源 1：GitHub 搜索免费 API 仓库
     try {
       pushLog('连接数据源 GitHub Search…');
       const res = await fetch(
@@ -90,7 +90,6 @@ export default function AdminPage() {
           url: r.html_url,
           category: '开源',
           auth: '免费',
-          stars: r.stargazers_count,
         }));
         results = results.concat(items);
         pushLog(`GitHub 命中 ${items.length} 个免费 API 项目`);
@@ -99,20 +98,20 @@ export default function AdminPage() {
       pushLog('GitHub 数据源暂不可用，切换备用源');
     }
 
-    // 数据源 2：内置目录兜底
     if (results.length < 4) {
       pushLog('加载内置免费 API 目录…');
       results = results.concat(SEED_APIS);
     }
 
-    // 去重
     const seen = new Set();
-    results = results.filter((r) => {
-      const k = r.name.toLowerCase();
-      if (seen.has(k)) return false;
-      seen.add(k);
-      return true;
-    }).slice(0, 12);
+    results = results
+      .filter((r) => {
+        const k = r.name.toLowerCase();
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      })
+      .slice(0, 12);
 
     setFound(results);
     pushLog(`搜集完成，共发现 ${results.length} 个可用免费 API`);
@@ -120,10 +119,8 @@ export default function AdminPage() {
     setCollecting(false);
   };
 
-  // 接入某个 API（提升服务）
   const addApi = (api) => {
-    const exists = state.apis.some((a) => a.name === api.name);
-    if (exists) {
+    if (state.apis.some((a) => a.name === api.name)) {
       toast('该 API 已接入', 'warning');
       return;
     }
@@ -148,16 +145,16 @@ export default function AdminPage() {
   // 未认证：登录界面
   if (!state.isAdmin) {
     return (
-      <div className="pb-safe px-5 pt-10 animate-fadeUp flex flex-col items-center">
+      <div className="px-5 pt-12 pb-10 animate-fadeUp flex flex-col items-center min-h-screen">
         <div className="w-16 h-16 rounded-3xl btn-grad flex items-center justify-center mb-5 shadow-glow">
           <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" className="w-8 h-8">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
           </svg>
         </div>
-        <h1 className="text-2xl font-bold mb-1.5">管理员认证</h1>
-        <p className="text-white/45 text-sm mb-8 text-center">认证后可解锁全部特权与 AI 搜集引擎</p>
+        <h1 className="text-2xl font-bold mb-1.5 text-white">管理员认证</h1>
+        <p className="text-white/45 text-sm mb-8 text-center">此区域仅限管理员访问</p>
 
-        <div className="glass rounded-3xl p-5 w-full mb-4">
+        <div className="glass-dark rounded-3xl p-5 w-full mb-4">
           <label className="text-xs text-white/45 mb-2 block">管理员密钥</label>
           <input
             type="password"
@@ -165,12 +162,12 @@ export default function AdminPage() {
             onChange={(e) => setCode(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && login()}
             placeholder="请输入管理员密钥"
-            className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-sm outline-none focus:border-brand-violet/60 transition-colors"
+            className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 text-sm text-white outline-none focus:border-brand-violet/60 transition-colors"
           />
           <button
             onClick={login}
             disabled={busy}
-            className="press btn-grad w-full rounded-2xl py-3.5 mt-4 font-semibold disabled:opacity-60 flex items-center justify-center gap-2"
+            className="press btn-grad w-full rounded-2xl py-3.5 mt-4 font-semibold text-white disabled:opacity-60 flex items-center justify-center gap-2"
           >
             {busy ? (
               <>
@@ -183,32 +180,36 @@ export default function AdminPage() {
           </button>
           <p className="text-[11px] text-white/30 text-center mt-3">演示密钥：admin888</p>
         </div>
+
+        <button onClick={() => navigate('/')} className="press text-sm text-white/40">
+          ← 返回用户端
+        </button>
       </div>
     );
   }
 
   // 已认证：管理后台
   return (
-    <div className="pb-safe px-5 pt-8 animate-fadeUp">
+    <div className="px-5 pt-8 pb-12 animate-fadeUp">
       <header className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold mb-1">
+          <h1 className="text-2xl font-bold mb-1 text-white">
             管理后台 <span className="grad-text">PRO</span>
           </h1>
-          <p className="text-white/45 text-sm">欢迎，{state.adminName} · 全部特权已解锁</p>
+          <p className="text-white/45 text-sm">{state.adminName} · 全部特权已解锁</p>
         </div>
-        <button onClick={logout} className="press glass rounded-full px-4 py-2 text-xs text-white/60">
+        <button onClick={logout} className="press glass-dark rounded-full px-4 py-2 text-xs text-white/60">
           退出
         </button>
       </header>
 
-      {/* Privileges */}
+      {/* 特权面板 */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         {PRIVILEGES.map((p) => (
           <button
             key={p.name}
             onClick={() => toast(`特权「${p.name}」已生效`, 'success')}
-            className="press glass rounded-2xl p-3.5 text-left bg-gradient-to-b from-white/5 to-transparent"
+            className="press glass-dark rounded-2xl p-3.5 text-left bg-gradient-to-b from-white/5 to-transparent"
           >
             <span className="text-xl block mb-2">{p.icon}</span>
             <p className="text-xs font-medium text-white/90">{p.name}</p>
@@ -217,21 +218,19 @@ export default function AdminPage() {
         ))}
       </div>
 
-      {/* AI collector */}
-      <div className="glass rounded-3xl p-5 mb-5">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="font-semibold flex items-center gap-2">
-              🤖 AI 免费 API 搜集引擎
-              <span className="text-[10px] bg-emerald-400/15 text-emerald-300 px-2 py-0.5 rounded-full">管理员特权</span>
-            </h2>
-            <p className="text-[11px] text-white/40 mt-1">自动从全网搜集免费 API，接入即可提升服务能力</p>
-          </div>
+      {/* AI 搜集引擎 */}
+      <div className="glass-dark rounded-3xl p-5 mb-5">
+        <div className="mb-4">
+          <h2 className="font-semibold text-white flex items-center gap-2">
+            🤖 AI 免费 API 搜集引擎
+            <span className="text-[10px] bg-emerald-400/15 text-emerald-300 px-2 py-0.5 rounded-full">管理员特权</span>
+          </h2>
+          <p className="text-[11px] text-white/40 mt-1">自动从全网搜集免费 API，接入即可提升服务能力</p>
         </div>
         <button
           onClick={collect}
           disabled={collecting}
-          className="press btn-grad w-full rounded-2xl py-3.5 font-semibold disabled:opacity-60 flex items-center justify-center gap-2"
+          className="press btn-grad w-full rounded-2xl py-3.5 font-semibold text-white disabled:opacity-60 flex items-center justify-center gap-2"
         >
           {collecting ? (
             <>
@@ -243,20 +242,21 @@ export default function AdminPage() {
           )}
         </button>
 
-        {/* Log */}
         {log.length > 0 && (
-          <div ref={logRef} className="mt-4 bg-black/40 rounded-2xl p-3 h-28 overflow-y-auto font-mono text-[10px] leading-relaxed text-emerald-300/80">
+          <div
+            ref={logRef}
+            className="mt-4 bg-black/40 rounded-2xl p-3 h-28 overflow-y-auto font-mono text-[10px] leading-relaxed text-emerald-300/80"
+          >
             {log.map((l, i) => (
               <div key={i}>{l}</div>
             ))}
           </div>
         )}
 
-        {/* Found list */}
         {found.length > 0 && (
           <div className="mt-4 space-y-2.5">
             {found.map((api) => (
-              <div key={api.name} className="flex items-center gap-3 bg-white/4 rounded-2xl p-3">
+              <div key={api.name} className="flex items-center gap-3 bg-white/5 rounded-2xl p-3">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm text-white/90 truncate">{api.name}</p>
                   <p className="text-[11px] text-white/40 truncate mt-0.5">{api.desc}</p>
@@ -274,10 +274,10 @@ export default function AdminPage() {
         )}
       </div>
 
-      {/* Connected APIs */}
-      <div className="glass rounded-3xl p-5 mb-5">
+      {/* 已接入 API */}
+      <div className="glass-dark rounded-3xl p-5 mb-5">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold">已接入 API（{state.apis.length}）</h2>
+          <h2 className="font-semibold text-white">已接入 API（{state.apis.length}）</h2>
           <span className="text-[11px] text-emerald-300">服务能力持续提升</span>
         </div>
         <div className="space-y-3">
@@ -297,9 +297,9 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* Security */}
-      <div className="glass rounded-3xl p-5">
-        <h2 className="font-semibold mb-4">安全防护</h2>
+      {/* 安全防护 */}
+      <div className="glass-dark rounded-3xl p-5 mb-6">
+        <h2 className="font-semibold text-white mb-4">安全防护</h2>
         <div className="space-y-3">
           {state.security.map((s) => (
             <div key={s.name} className="flex items-center justify-between">
@@ -312,6 +312,10 @@ export default function AdminPage() {
           ))}
         </div>
       </div>
+
+      <button onClick={() => navigate('/')} className="press w-full glass-dark rounded-2xl py-3 text-sm text-white/60">
+        ← 返回用户端
+      </button>
     </div>
   );
 }

@@ -3,16 +3,16 @@ import { HashRouter, Routes, Route, useLocation, Navigate } from 'react-router-d
 import { ToastProvider } from './components/Toast.jsx';
 import { AppProvider } from './context/AppContext.jsx';
 import BottomNav from './components/BottomNav.jsx';
-import HomePage from './pages/HomePage.jsx';
-import StudioPage from './pages/StudioPage.jsx';
-import EarningsPage from './pages/EarningsPage.jsx';
-import LibraryPage from './pages/LibraryPage.jsx';
+import WelcomePage from './pages/WelcomePage.jsx';
+import ChatPage from './pages/ChatPage.jsx';
+import ToolsPage from './pages/ToolsPage.jsx';
+import ProfilePage from './pages/ProfilePage.jsx';
 import AdminPage from './pages/AdminPage.jsx';
 
 function AnimatedRoutes() {
   const location = useLocation();
   const [display, setDisplay] = useState(location);
-  const [phase, setPhase] = useState('in'); // in | out
+  const [phase, setPhase] = useState('in');
 
   useEffect(() => {
     if (location.pathname !== display.pathname) {
@@ -26,20 +26,36 @@ function AnimatedRoutes() {
     }
   }, [location]);
 
+  const isAdminRoute = display.pathname.startsWith('/admin');
+
   return (
     <div
       className={`transition-all duration-200 ease-out ${
         phase === 'in' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
       }`}
     >
+      {/* 背景随用户端/管理端切换 */}
+      <div className={isAdminRoute ? 'app-bg-dark' : 'app-bg-light'} />
       <Routes location={display}>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/studio" element={<StudioPage />} />
-        <Route path="/earnings" element={<EarningsPage />} />
-        <Route path="/library" element={<LibraryPage />} />
+        <Route path="/" element={<WelcomePage />} />
+        <Route path="/chat" element={<ChatPage />} />
+        <Route path="/tools" element={<ToolsPage />} />
+        <Route path="/me" element={<ProfilePage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+    </div>
+  );
+}
+
+function Shell() {
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith('/admin');
+
+  return (
+    <div className="min-h-screen max-w-lg mx-auto relative">
+      <AnimatedRoutes />
+      {!isAdminRoute && <BottomNav />}
     </div>
   );
 }
@@ -49,11 +65,7 @@ export default function App() {
     <ToastProvider>
       <AppProvider>
         <HashRouter>
-          <div className="app-bg" />
-          <div className="min-h-screen max-w-lg mx-auto relative">
-            <AnimatedRoutes />
-            <BottomNav />
-          </div>
+          <Shell />
         </HashRouter>
       </AppProvider>
     </ToastProvider>

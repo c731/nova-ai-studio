@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 * {
@@ -13,38 +13,56 @@
 html,
 body {
   height: 100%;
-  background: #07070d;
+  background: #f5f6fa;
   overscroll-behavior: none;
 }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'PingFang SC', 'Noto Sans SC', 'Segoe UI', sans-serif;
-  color: #f0f0ff;
+  color: #1a1a2e;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Ambient background */
-.app-bg {
+/* 用户端浅色氛围背景 */
+.app-bg-light {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse 70% 50% at 15% 0%, rgba(77, 107, 254, 0.08) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 45% at 90% 20%, rgba(139, 124, 246, 0.07) 0%, transparent 55%),
+    linear-gradient(180deg, #f8f9fd 0%, #f3f4f9 100%);
+}
+
+/* 管理员端深色氛围背景 */
+.app-bg-dark {
   position: fixed;
   inset: 0;
   z-index: -1;
   background:
     radial-gradient(ellipse 80% 60% at 20% 10%, rgba(139, 124, 246, 0.14) 0%, transparent 50%),
     radial-gradient(ellipse 60% 50% at 85% 80%, rgba(34, 211, 238, 0.09) 0%, transparent 50%),
-    radial-gradient(ellipse 50% 50% at 50% 50%, rgba(244, 114, 182, 0.05) 0%, transparent 50%),
     linear-gradient(180deg, #07070d 0%, #0a0a14 100%);
 }
 
-/* Glass surface */
-.glass {
+/* 浅色玻璃卡片 */
+.glass-light {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(20, 20, 40, 0.06);
+}
+
+/* 深色玻璃卡片（管理员端） */
+.glass-dark {
   background: rgba(22, 22, 42, 0.6);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* Haptic press feedback */
+/* 触感按压反馈 */
 .press {
   transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease, background 0.2s ease, opacity 0.2s ease;
   will-change: transform;
@@ -53,41 +71,38 @@ body {
   transform: scale(0.96);
 }
 
-/* Gradient text */
+/* 渐变文字 */
 .grad-text {
-  background: linear-gradient(90deg, #a78bfa, #22d3ee, #f472b6);
+  background: linear-gradient(90deg, #4d6bfe, #8b7cf6, #22d3ee);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-/* Gradient button */
+/* 主按钮 */
+.btn-primary {
+  background: #4d6bfe;
+  box-shadow: 0 8px 24px rgba(77, 107, 254, 0.32);
+}
+
+/* 管理员渐变按钮 */
 .btn-grad {
   background: linear-gradient(135deg, #8b7cf6 0%, #22d3ee 100%);
   box-shadow: 0 8px 24px rgba(139, 124, 246, 0.35);
 }
 
-/* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(100, 100, 140, 0.2);
   border-radius: 999px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 
-/* Safe area for bottom nav */
 .pb-safe {
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 84px);
-}
-
-/* Shimmer skeleton */
-.shimmer {
-  background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.04) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 2.2s linear infinite;
 }
