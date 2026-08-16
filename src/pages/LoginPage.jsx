@@ -11,19 +11,31 @@ export default function LoginPage() {
   const [mode, setMode] = useState('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  // 邀请码：从邀请链接 ?inv=INV-XXXX 自动预填
+  const [invite, setInvite] = useState(() => {
+    const q = new URLSearchParams(window.location.hash.split('?')[1] || '');
+    return q.get('inv') || '';
+  });
 
   const submit = () => {
     if (!username.trim() || !password.trim()) {
       toast('请填写用户名和密码', 'warning');
       return;
     }
-    const r = mode === 'login' ? DB.login(username.trim(), password) : DB.register(username.trim(), password);
+    const r =
+      mode === 'login'
+        ? DB.login(username.trim(), password)
+        : DB.register(username.trim(), password, invite.trim());
     if (!r.ok) {
       toast(r.msg, 'error');
       return;
     }
     refresh();
-    toast(mode === 'login' ? `欢迎回来，${r.user.username}` : '注册成功，已赠送 1000 积分', 'success');
+    if (mode === 'login') {
+      toast(`欢迎回来，${r.user.username}`, 'success');
+    } else {
+      toast(r.inviteReward ? `注册成功！1000 + ${r.inviteReward} 邀请奖励积分已到账` : '注册成功，已赠送 1000 积分', 'success');
+    }
     navigate('/');
   };
 
@@ -56,6 +68,17 @@ export default function LoginPage() {
           placeholder="请输入密码"
           className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3.5 text-sm outline-none focus:border-[#4d6bfe]/50"
         />
+        {mode === 'register' && (
+          <>
+            <label className="text-xs text-slate-400 mb-2 mt-4 block">邀请码（选填，双方各得 500 积分）</label>
+            <input
+              value={invite}
+              onChange={(e) => setInvite(e.target.value)}
+              placeholder="INV-XXXXXX"
+              className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3.5 text-sm outline-none focus:border-rose-300"
+            />
+          </>
+        )}
         <button onClick={submit} className="press btn-primary w-full rounded-2xl py-3.5 mt-5 text-white font-semibold">
           {mode === 'login' ? '登录' : '注册并登录'}
         </button>

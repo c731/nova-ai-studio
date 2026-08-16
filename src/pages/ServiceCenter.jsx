@@ -231,28 +231,64 @@ export default function ServiceCenter() {
           </div>
         );
 
-      case 'invite':
+      case 'invite': {
+        const code = user ? DB.inviteCodeOf(user.id) : '';
+        const link = `${window.location.origin}${window.location.pathname}#/login?inv=${code}`;
+        const invites = user ? DB.invitesOf(user.id) : [];
         return (
           <div className="animate-fadeUp space-y-4">
             <div className="rounded-3xl p-6 bg-gradient-to-br from-rose-400 to-pink-500 text-white">
               <p className="font-bold mb-1">🤝 邀请好友 各得 500 积分</p>
-              <p className="text-[11px] text-white/80">好友注册时填写你的邀请码，双方各得 500 积分</p>
+              <p className="text-[11px] text-white/80">好友通过你的链接注册，或注册时填写你的邀请码，双方立即各得 500 积分，多邀多得</p>
             </div>
             <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 text-center">
               <p className="text-[11px] text-slate-400 mb-2">我的邀请码</p>
-              <p className="text-2xl font-bold grad-text tracking-widest">{user ? 'INV-' + user.id.slice(0, 6).toUpperCase() : '登录后查看'}</p>
-              <button
-                onClick={() => {
-                  navigator.clipboard?.writeText(user ? 'INV-' + user.id.slice(0, 6).toUpperCase() : '');
-                  toast('邀请码已复制', 'success');
-                }}
-                className="press mt-3 bg-rose-50 text-rose-500 rounded-full px-6 py-2 text-sm font-semibold"
-              >
-                复制邀请码
-              </button>
+              <p className="text-2xl font-bold grad-text tracking-widest">{user ? code : '登录后查看'}</p>
+              <div className="flex gap-2 justify-center mt-3">
+                <button
+                  onClick={() => {
+                    navigator.clipboard?.writeText(code);
+                    toast('邀请码已复制', 'success');
+                  }}
+                  className="press bg-rose-50 text-rose-500 rounded-full px-5 py-2 text-sm font-semibold"
+                >
+                  复制邀请码
+                </button>
+                <button
+                  onClick={() => {
+                    navigator.clipboard?.writeText(link);
+                    toast('邀请链接已复制，发给好友即可', 'success');
+                  }}
+                  className="press bg-gradient-to-r from-rose-400 to-orange-400 text-white rounded-full px-5 py-2 text-sm font-semibold"
+                >
+                  复制邀请链接
+                </button>
+              </div>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 text-center">
+                <p className="text-xl font-bold text-rose-500">{invites.length}</p>
+                <p className="text-[11px] text-slate-400 mt-1">成功邀请人数</p>
+              </div>
+              <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 text-center">
+                <p className="text-xl font-bold text-rose-500">+{invites.length * 500}</p>
+                <p className="text-[11px] text-slate-400 mt-1">累计获得奖励积分</p>
+              </div>
+            </div>
+            {invites.length > 0 && (
+              <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100">
+                <p className="text-xs font-semibold text-slate-500 mb-2">邀请记录</p>
+                {invites.map((i, idx) => (
+                  <div key={i.inviteeId} className="flex justify-between text-xs py-1.5 border-b border-slate-50 last:border-0">
+                    <span className="text-slate-600">好友 {idx + 1} · {i.time}</span>
+                    <span className="text-rose-500 font-semibold">+{i.reward} 积分</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         );
+      }
 
       case 'messages':
         return (
@@ -338,11 +374,11 @@ export default function ServiceCenter() {
       {/* 滑出侧边栏 */}
       <ServiceSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} active={active} onSelect={setActive} />
 
-      {/* 订单支付弹窗 */}
+      {/* 订单支付弹窗（支付宝扫码收款，款项直达站长账户） */}
       {orderModal && (
         <div className="fixed inset-0 z-[90] flex items-center justify-center px-8">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fadeIn" onClick={() => setOrderModal(null)} />
-          <div className="relative bg-white rounded-3xl p-6 w-full max-w-sm animate-fadeUp">
+          <div className="relative bg-white rounded-3xl p-6 w-full max-w-sm animate-fadeUp max-h-[88vh] overflow-y-auto">
             <h3 className="font-bold text-slate-800 text-center mb-4">确认订单</h3>
             <div className="bg-slate-50 rounded-2xl p-4 space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-slate-400">订单号</span><span className="text-slate-700 font-mono text-xs">{orderModal.id}</span></div>
@@ -350,8 +386,26 @@ export default function ServiceCenter() {
               <div className="flex justify-between"><span className="text-slate-400">积分</span><span className="text-slate-700">{orderModal.credits.toLocaleString()}</span></div>
               <div className="flex justify-between"><span className="text-slate-400">金额</span><span className="text-rose-500 font-bold">{orderModal.price}</span></div>
             </div>
+
+            {/* 收款码区域 */}
+            <div className="mt-4 rounded-2xl border-2 border-dashed border-sky-200 bg-sky-50/50 p-4 text-center">
+              <p className="text-xs font-semibold text-sky-600 mb-2">① 打开支付宝「扫一扫」付款</p>
+              {DB.payConfig().alipayImage ? (
+                <img src={DB.payConfig().alipayImage} alt="支付宝收款码" className="w-44 h-44 object-contain mx-auto rounded-xl bg-white" />
+              ) : (
+                <div className="w-44 h-44 mx-auto rounded-xl bg-white flex flex-col items-center justify-center text-slate-300">
+                  <span className="text-3xl mb-1">💠</span>
+                  <span className="text-[11px]">收款码待管理员上传</span>
+                </div>
+              )}
+              <p className="text-[11px] text-slate-500 mt-2">
+                收款账户：支付宝 <span className="font-semibold text-slate-700">{DB.payConfig().payee}</span>
+              </p>
+              <p className="text-[10px] text-slate-400 mt-1">付款完成后点击下方按钮，积分立即到账</p>
+            </div>
+
             <button onClick={payOrder} className="press w-full mt-4 rounded-2xl py-3.5 bg-gradient-to-r from-rose-400 to-orange-400 text-white font-semibold">
-              确认支付
+              ② 我已完成付款，确认到账
             </button>
             <button onClick={() => setOrderModal(null)} className="press w-full mt-2 rounded-2xl py-3 text-slate-400 text-sm">
               取消

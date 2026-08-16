@@ -27,7 +27,13 @@ function save(db) {
 
 function initDB() {
   const existing = load();
-  if (existing) return existing;
+  if (existing) {
+    // 旧数据兼容：补齐邀请与收款配置字段
+    if (!existing.invites) existing.invites = [];
+    if (!existing.payConfig) existing.payConfig = { alipayImage: '', payee: '白鸟(**林)' };
+    save(existing);
+    return existing;
+  }
   const db = {
     users: [],
     sessions: { currentUserId: null },
@@ -36,6 +42,8 @@ function initDB() {
     failLogs: [], // 失败日志：{ id, provider, error, time }
     redeemCodes: [], // 兑换码：{ code, credits, used, usedBy, time }
     orders: [], // 订单：{ id, userId, plan, credits, price, status, time }
+    invites: [], // 邀请记录：{ inviterId, inviteeId, reward, time }
+    payConfig: { alipayImage: '', payee: '白鸟(**林)' }, // 收款配置（管理员上传收款码）
     capabilities: [
       // 站点 AI 能力（智能 AI 可自动扩充）
       { id: 'chat', name: 'AI 对话', cost: 2, builtin: true },
@@ -54,7 +62,7 @@ const db = initDB();
 
 export const DB = {
   // ---------- 用户 ----------
-  register(username, password) {
+  register(username, password, inviteCode) {
     if (db.users.some((u) => u.username === username)) {
       return { ok: false, msg: '该用户名已被注册' };
     }
@@ -63,7 +71,13 @@ export const DB = {
     db.creditsLedger.push({ id: uid(), userId: user.id, delta: 1000, reason: '新用户注册赠送', time: now() });
     db.sessions.currentUserId = user.id;
     save(db);
-    return { ok: true, user };
+    // 注册成功后自动结算邀请奖励（双方各 +500）
+    let inviteReward = null;
+    if (inviteCode) {
+      const r = DB.applyInviteCode(user.id, inviteCode);
+      if (r.ok) inviteReward = r.reward;
+    }
+    return { ok: true, user, inviteReward };
   },
   login(username, password) {
     const user = db.users.find((u) => u.username === username && u.password === password);
@@ -81,6 +95,37 @@ export const DB = {
   },
   allUsers() {
     return [...db.users].sort((a, b) => b.credits - a.credits);
+  },
+
+  // ---------- 邀请活动（双方各得 500 积分） ----------
+  inviteCodeOf(userId) {
+    return 'INV-' + userId.slice(0, 6).toUpperCase();
+  },
+  applyInviteCode(newUserId, code) {
+    const c = code.trim().toUpperCase();
+    if (!c.startsWith('INV-')) return { ok: false, msg: '邀请码格式不正确' };
+    const inviter = db.users.find((u) => DB.inviteCodeOf(u.id) === c);
+    if (!inviter) return { ok: false, msg: '邀请码不存在' };
+    if (inviter.id === newUserId) return { ok: false, msg: '不能使用自己的邀请码' };
+    if (db.invites.some((i) => i.inviteeId === newUserId)) return { ok: false, msg: '已填写过邀请码' };
+    const REWARD = 500;
+    db.invites.push({ inviterId: inviter.id, inviteeId: newUserId, reward: REWARD, time: now() });
+    DB.addCredits(inviter.id, REWARD, '邀请活动奖励（成功邀请新用户）');
+    DB.addCredits(newUserId, REWARD, '邀请活动奖励（填写邀请码）');
+    save(db);
+    return { ok: true, reward: REWARD };
+  },
+  invitesOf(userId) {
+    return db.invites.filter((i) => i.inviterId === userId).reverse();
+  },
+
+  // ---------- 收款配置（站点全部收入进该账户） ----------
+  payConfig() {
+    return db.payConfig;
+  },
+  setPayConfig(cfg) {
+    db.payConfig = { ...db.payConfig, ...cfg };
+    save(db);
   },
 
   // ---------- 积分 ----------
